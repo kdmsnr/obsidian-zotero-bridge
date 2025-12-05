@@ -1,0 +1,11 @@
+node_modules/
+main.js
+data.json
+styles.css.map
+.DS_Store
+Thumbs.db
+npm-debug.log
+yarn-error.log
+*.log
+.vscode/
+.idea/
