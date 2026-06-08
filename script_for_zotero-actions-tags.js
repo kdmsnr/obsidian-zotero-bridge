@@ -1,6 +1,13 @@
 if (!items || items.length === 0) return;
 const targetItem = items[0];
-const title = targetItem.getField('title') || '';
+const directory = '';
+
+const formatTitleForObsidian = (value) => {
+    return value.replace(/:\s*/g, '：');
+};
+
+const zoteroTitle = targetItem.getField('title') || '';
+const title = formatTitleForObsidian(zoteroTitle);
 let citekey = '';
 
 try {
@@ -9,7 +16,7 @@ try {
         citekey = keyInfo?.citationKey || keyInfo?.citekey || '';
     }
 } catch (error) {
-    Zotero.log('Obsidian Bridge: CiteKey lookup failed', error);
+    Zotero.log('Obsidian Bridge: Better BibTeX citation key lookup failed', error);
 }
 
 if (!citekey) {
@@ -20,5 +27,14 @@ if (!citekey) {
     }
 }
 
-const vaultUrl = `obsidian://zotero-bridge?citekey=${encodeURIComponent(citekey)}&title=${encodeURIComponent(title)}`;
+const params = [
+    `citekey=${encodeURIComponent(citekey)}`,
+    `title=${encodeURIComponent(title)}`
+];
+
+if (directory) {
+    params.push(`dir=${encodeURIComponent(directory)}`);
+}
+
+const vaultUrl = `obsidian://zotero-bridge?${params.join('&')}`;
 Zotero.launchURL(vaultUrl);

@@ -11,6 +11,18 @@ const citekeyFields = new Set([
 ]);
 
 export type Frontmatter = Record<string, unknown> | null | undefined;
+export type TitleSearchFile = {
+    basename: string;
+    path: string;
+};
+
+export function titleToObsidianTitle(title: string): string {
+    return title.replace(/:\s*/g, '：');
+}
+
+export function titleToZoteroTitle(title: string): string {
+    return title.replace(/：\s*/g, ': ');
+}
 
 export function normalizeZoteroSelectPath(rawId: string): string | null {
     if (!rawId) {
@@ -148,6 +160,52 @@ export function findTitleMatch(entries: unknown[], terms: string[]): unknown | n
     return null;
 }
 
+export function findFuzzyTitleFile<T extends TitleSearchFile>(
+    files: T[],
+    title: string,
+    directory?: unknown
+): T | null {
+    const scopedFiles = files.filter(file => isFileInDirectory(file.path, directory));
+    const expectedBasename = titleToObsidianTitle(title);
+    const exactMatch = scopedFiles.find(file => file.basename === expectedBasename);
+    if (exactMatch) {
+        return exactMatch;
+    }
+
+    const terms = title.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    if (terms.length === 0) {
+        return null;
+    }
+
+    const regexPattern = terms.map(escapeRegExp).join(".*");
+    const regex = new RegExp(regexPattern, "i");
+
+    return scopedFiles.find(file => regex.test(file.basename)) ?? null;
+}
+
+export function isFileInDirectory(filePath: string, directory?: unknown): boolean {
+    const normalizedDirectory = normalizeDirectoryFilter(directory);
+    if (!normalizedDirectory) {
+        return true;
+    }
+
+    const normalizedPath = normalizePathLike(filePath);
+    return normalizedPath.startsWith(`${normalizedDirectory}/`);
+}
+
+export function normalizeDirectoryFilter(directory?: unknown): string | null {
+    if (typeof directory !== 'string') {
+        return null;
+    }
+
+    const normalized = normalizePathLike(directory);
+    if (!normalized || normalized === '.') {
+        return null;
+    }
+
+    return normalized;
+}
+
 function extractTitleFromEntry(entry: unknown): string | null {
     if (!entry || typeof entry !== 'object') {
         return null;
@@ -161,6 +219,19 @@ function extractTitleFromEntry(entry: unknown): string | null {
     }
 
     return null;
+}
+
+function normalizePathLike(value: string): string {
+    let normalized = value.trim().replace(/\\/g, '/');
+    normalized = normalized.replace(/^\/+/, '').replace(/\/+$/, '');
+    while (normalized.startsWith('./')) {
+        normalized = normalized.slice(2);
+    }
+    return normalized;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function collectNormalizedCitekeys(frontmatter: Frontmatter): string[] {
