@@ -1,6 +1,6 @@
 if (!items || items.length === 0) return;
 const targetItem = items[0];
-const directory = '';
+const directory = 'Zotero';
 
 const formatTitleForObsidian = (value) => {
     return value.replace(/:\s*/g, '：');
